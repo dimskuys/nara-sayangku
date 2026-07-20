@@ -116,9 +116,20 @@
     text-align: center;
     padding: 30px;
   }
-  .cover .back {
-    background: var(--cream); /* Fix bug garis merah: diubah dari wine ke cream */
+
+  /* Gaya untuk sisi dalam/kertas (Kiri dan Kanan) */
+  .cover .back, .page .front, .page .back {
+    background: var(--cream);
     border: 1px solid rgba(92,31,46,.12);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .page .front { box-shadow: 2px 0 12px rgba(0,0,0,.15); }
+  .page .back {
+    background-image: linear-gradient(to right, rgba(0,0,0,0.04) 0%, transparent 8%);
+    box-shadow: -2px 0 12px rgba(0,0,0,.1);
+  }
+  .cover .back {
     box-shadow: inset -4px 0 20px rgba(0,0,0,0.05);
   }
 
@@ -176,24 +187,10 @@
     transform: translateZ(var(--z, 0px)) rotateY(0deg);
   }
   .page.flipped {
-    transform: translateZ(var(--z, 0px)) rotateY(-180deg);
+    transform: translateZ(var(--z, 0px)) rotateY(var(--flip-deg, -178deg));
   }
 
-  .page .front {
-    background: var(--cream);
-    border: 1px solid rgba(92,31,46,.12);
-    box-shadow: 2px 0 12px rgba(0,0,0,.15);
-    display: flex; flex-direction: column;
-    overflow: hidden;
-  }
-  .page .back {
-    background: var(--cream);
-    background-image: linear-gradient(to right, rgba(0,0,0,0.04) 0%, transparent 8%);
-    border: 1px solid rgba(92,31,46,.12);
-    box-shadow: -2px 0 12px rgba(0,0,0,.1);
-  }
-
-  .page .photo-frame{
+  .photo-frame{
     position:relative;
     flex: 1 1 58%;
     margin: 20px 20px 0;
@@ -204,40 +201,34 @@
     overflow:hidden;
     display:flex; align-items:center; justify-content:center;
   }
-  .page .photo-frame img{
+  .photo-frame img{
     width:100%; height:100%; object-fit:cover; display:block;
   }
-  .page .photo-frame.missing img{ display:none; }
-  .page .photo-frame.missing::after{
+  .photo-frame.missing img{ display:none; }
+  .photo-frame.missing::after{
     content: '🤍  taruh foto di sini';
     font-family: 'Caveat', cursive;
     font-size: 18px;
     color: #a98a76;
   }
 
-  .page .note{
+  .note{
     flex: 1 1 42%;
     padding: 14px 22px 10px;
     display:flex; flex-direction:column; justify-content:center;
     text-align:center;
   }
-  .page .note .num{
+  .note .num{
     font-size: 11px; letter-spacing:.25em; text-transform:uppercase;
     color: var(--sage); margin-bottom:6px;
   }
-  .page .note p{
+  .note p{
     font-family: 'Caveat', cursive;
     font-size: clamp(17px, 3.4vw, 21px);
     line-height: 1.35;
     color: var(--ink);
     margin:0;
   }
-
-  /* closing page styling */
-  .page .front.closing{ align-items:center; justify-content:center; }
-  .page .front.closing .note{ padding: 30px; }
-  .page .front.closing p{ font-size: clamp(20px,4vw,26px); }
-  .page .front.closing .big-heart{ font-size: 30px; margin-bottom: 8px; }
 
   /* ---------- CONTROLS ---------- */
   .controls{
@@ -278,7 +269,7 @@
 </head>
 <body>
 
-<!-- Audio Player (Otomatis main saat layar diketuk) -->
+<!-- Audio Player -->
 <audio id="bgMusic" loop>
   <source src="lagu.mp3" type="audio/mpeg">
 </audio>
@@ -299,7 +290,9 @@
         <div class="seal">💌</div>
         <div class="hint">ketuk untuk membuka</div>
       </div>
-      <div class="back"></div>
+      <div class="back" id="coverBack">
+        <!-- Diisi otomatis oleh JS untuk sisi kiri pertama -->
+      </div>
     </div>
   </div>
 </div>
@@ -311,39 +304,29 @@
 
 <script>
 /* ======================================================================
-   DATA HALAMAN BUKU — edit semua di bawah ini
+   DATA HALAMAN BUKU — 3 Lembar (Kiri dan Kanan)
    ====================================================================== */
 
 const COVER_TITLE = "Untuk Sayangku";
 
-const PAGES = [
+// Susunan cerita diubah menjadi SPREADS (pasangan kiri dan kanan)
+const SPREADS = [
   {
-    photo: "images/foto1.jpg",
-    note: "Ini halaman pertama. Ceritain momen pertama kalian di sini~"
+    left: { photo: "images/foto1.jpg", note: "Ini cerita pertama kita saat baru mulai. Rasanya deg-degan banget..." },
+    right: { photo: "images/foto2.jpg", note: "Banyak momen lucu dan konyol yang kita lewati berdua." }
   },
   {
-    photo: "images/foto2.jpg",
-    note: "Halaman kedua. Bisa tentang momen lucu atau konyol berdua."
+    left: { photo: "images/foto3.jpg", note: "Hal yang paling aku suka darimu adalah senyum manismu." },
+    right: { photo: "images/foto4.jpg", note: "Kenangan liburan kita, selalu pengen diulang terus." }
   },
   {
-    photo: "images/foto3.jpg",
-    note: "Halaman ketiga. Tulis hal yang paling kamu suka darinya."
-  },
-  {
-    photo: "images/foto4.jpg",
-    note: "Halaman keempat. Kenangan liburan atau jalan-jalan kalian."
-  },
-  {
-    photo: "images/foto5.jpg",
-    note: "Halaman kelima. Ucapan terima kasih sudah selalu ada."
-  },
-  {
-    photo: "images/foto6.jpg",
-    note: "Halaman keenam. Harapan kalian untuk tahun depan."
+    left: { photo: "images/foto5.jpg", note: "Terima kasih ya sudah selalu ada dan support aku." },
+    right: {
+      isClosing: true,
+      note: "Selamat ulang tahun, sayangku.\nSemoga tahun ini penuh hal-hal baik untukmu.\nAku sayang kamu, selalu."
+    }
   }
 ];
-
-const CLOSING_MESSAGE = "Selamat ulang tahun, sayangku.\nSemoga tahun ini penuh hal-hal baik untukmu.\nAku sayang kamu, selalu.";
 
 /* ====================================================================== */
 
@@ -351,45 +334,63 @@ document.getElementById('coverTitle').textContent = COVER_TITLE;
 
 const bookEl = document.getElementById('book');
 const cover = document.getElementById('cover');
+const coverBackEl = document.getElementById('coverBack');
 const bookContainer = document.getElementById('bookContainer');
 const bgMusic = document.getElementById('bgMusic');
-const totalPages = PAGES.length + 1;
 
-cover.style.setProperty('--z', `${totalPages + 2}px`);
+const totalSpreads = SPREADS.length; // 3 lembar
+cover.style.setProperty('--z', `${totalSpreads * 2 + 2}px`);
 
-PAGES.forEach((p, i) => {
+// Fungsi pembantu membuat HTML halaman
+function createPageContent(data, pageNumStr) {
+  if (!data) return '';
+  if (data.isClosing) {
+    return `
+      <div class="note" style="padding: 30px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="big-heart" style="font-size: 30px; margin-bottom: 8px;">🤍</div>
+        <p style="font-size: clamp(20px,4vw,26px); margin:0;">${data.note.replace(/\n/g,'<br>')}</p>
+      </div>
+    `;
+  }
+  return `
+    <div class="photo-frame">
+      <img src="${data.photo}" alt="Kenangan" onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+    </div>
+    <div class="note">
+      <div class="num">${pageNumStr}</div>
+      <p>${data.note}</p>
+    </div>
+  `;
+}
+
+// 1. Isi Balik Cover (Lembar 1 - Sisi Kiri)
+coverBackEl.innerHTML = createPageContent(SPREADS[0].left, '01 / 05');
+
+// 2. Buat Lembaran Dalam
+for (let i = 0; i < totalSpreads; i++) {
   const pageEl = document.createElement('div');
   pageEl.className = 'page';
-  pageEl.style.setProperty('--z', `${totalPages - i}px`);
+  
+  // Hitung rotasi flip dan z-index agar tumpukan terlihat realistis 3D
+  const flipDeg = -178 + (i * 2);
+  pageEl.style.setProperty('--z', `${(totalSpreads - i) * 2}px`);
+  pageEl.style.setProperty('--flip-deg', `${flipDeg}deg`);
+
+  // Konten Depan (Kanan)
+  const frontContent = createPageContent(SPREADS[i].right, `0${(i * 2) + 2} / 05`);
+  
+  // Konten Belakang (Kiri, untuk lembaran berikutnya)
+  let backContent = '';
+  if (i + 1 < totalSpreads) {
+    backContent = createPageContent(SPREADS[i + 1].left, `0${(i * 2) + 3} / 05`);
+  }
+
   pageEl.innerHTML = `
-    <div class="front">
-      <div class="photo-frame">
-        <img src="${p.photo}" alt="Kenangan ${i+1}"
-             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
-      </div>
-      <div class="note">
-        <div class="num">${String(i+1).padStart(2,'0')} / ${String(PAGES.length).padStart(2,'0')}</div>
-        <p>${p.note}</p>
-      </div>
-    </div>
-    <div class="back"></div>
+    <div class="front">${frontContent}</div>
+    <div class="back">${backContent}</div>
   `;
   bookEl.appendChild(pageEl);
-});
-
-const closingEl = document.createElement('div');
-closingEl.className = 'page closing-page';
-closingEl.style.setProperty('--z', `0px`);
-closingEl.innerHTML = `
-  <div class="front closing">
-    <div class="note">
-      <div class="big-heart">🤍</div>
-      <p>${CLOSING_MESSAGE.replace(/\n/g,'<br>')}</p>
-    </div>
-  </div>
-  <div class="back"></div>
-`;
-bookEl.appendChild(closingEl);
+}
 
 const pages = Array.from(bookEl.querySelectorAll('.page'));
 let current = 0;
@@ -402,10 +403,10 @@ const nextBtn = document.getElementById('nextBtn');
 function updateUI(){
   prevBtn.disabled = current === 0;
   
-  if (current === pages.length) {
+  if (current === pages.length - 1) {
     progress.textContent = 'selesai (ketuk › untuk menutup)';
   } else {
-    progress.textContent = current === 0 ? 'sampul' : `halaman ${current} / ${pages.length - 1}`;
+    progress.textContent = current === 0 ? 'halaman awal' : `bagian ${current + 1}`;
   }
 }
 
@@ -415,29 +416,23 @@ function openBook(){
   controls.classList.add('show');
   progress.classList.add('show');
   
-  // Memutar musik otomatis ketika buku dibuka
-  bgMusic.play().catch(e => console.log("Menunggu interaksi pengguna untuk audio."));
-  
+  bgMusic.play().catch(e => console.log("Menunggu interaksi."));
   updateUI();
 }
 
 function closeBook() {
-  // Reset semua halaman kembali ke awal
   pages.forEach(p => p.classList.remove('flipped'));
   current = 0;
-  
-  // Tutup cover dan kembalikan posisi buku ke tengah
   bookContainer.classList.remove('open');
   cover.classList.remove('open');
   controls.classList.remove('show');
   progress.classList.remove('show');
-  
   updateUI();
 }
 
 function next(){
-  // Jika sudah di halaman terakhir, klik tombol next akan menutup buku
-  if(current >= pages.length) {
+  // Menutup buku secara otomatis jika diklik next di halaman terakhir (penutup)
+  if(current >= pages.length - 1) {
     closeBook();
     return;
   }
