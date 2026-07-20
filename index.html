@@ -28,6 +28,11 @@
     --cream: #fbf3e7;
     --ink: #3a2b28;
     --sage: #7c8b5d;
+    --open-scale: 1; /* Default scale untuk desktop */
+  }
+
+  @media (max-width: 850px) {
+    :root { --open-scale: 0.65; } /* Buku mengecil saat terbuka di layar HP agar muat 2 halaman */
   }
 
   *{ box-sizing: border-box; }
@@ -66,30 +71,63 @@
     perspective: 2400px;
   }
 
-  /* ---------- COVER ---------- */
-  .cover{
-    position:absolute;
-    width:min(78vw, 380px);
-    height:min(78vw, 380px) * 1.35;
+  /* ---------- BOOK CONTAINER ---------- */
+  .book-container {
+    position: relative;
+    width: min(78vw, 380px);
     aspect-ratio: 3/4.2;
-    background:
-      radial-gradient(circle at 30% 20%, #7a2c3d 0%, var(--wine) 55%, var(--wine-dark) 100%);
-    border:1px solid rgba(201,162,75,.5);
-    border-radius: 6px;
-    box-shadow: 0 30px 70px rgba(0,0,0,.55), inset 0 0 0 8px rgba(201,162,75,.12);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center;
-    padding: 30px;
-    cursor:pointer;
-    transition: transform 1s cubic-bezier(.6,0,.2,1), opacity .8s ease .2s;
+    transform-style: preserve-3d;
     transform-origin: left center;
+    transition: transform 1s cubic-bezier(.6,0,.2,1);
+    z-index: 10;
+  }
+  /* Menggeser buku ke tengah layar saat terbuka */
+  .book-container.open {
+    transform: translateX(50%) scale(var(--open-scale));
+  }
+
+  /* ---------- COVER ---------- */
+  .cover {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 1s cubic-bezier(.6,0,.2,1);
     z-index: 50;
+    cursor: pointer;
+    /* Nilai Z diatur otomatis via JS */
+    transform: translateZ(var(--z, 50px)) rotateY(0deg);
   }
-  .cover.open{
-    transform: rotateY(-160deg);
-    opacity: 0;
-    pointer-events:none;
+  .cover.open {
+    transform: translateZ(var(--z, 50px)) rotateY(-178deg);
+    pointer-events: none;
   }
+
+  /* Wajah depan dan belakang dari cover & halaman */
+  .cover .front, .cover .back, .page .front, .page .back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 6px;
+  }
+  .cover .front, .page .front { transform: rotateY(0deg); }
+  .cover .back, .page .back { transform: rotateY(180deg); }
+
+  .cover .front {
+    background: radial-gradient(circle at 30% 20%, #7a2c3d 0%, var(--wine) 55%, var(--wine-dark) 100%);
+    border: 1px solid rgba(201,162,75,.5);
+    box-shadow: 0 30px 70px rgba(0,0,0,.55), inset 0 0 0 8px rgba(201,162,75,.12);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    padding: 30px;
+  }
+  .cover .back {
+    background: var(--wine-dark);
+    border: 1px solid rgba(201,162,75,.2);
+    box-shadow: inset 4px 0 20px rgba(0,0,0,0.6);
+  }
+
   .cover .eyebrow{
     font-family: 'Display', 'Playfair Display', serif;
     letter-spacing: .35em;
@@ -128,28 +166,39 @@
     text-transform: uppercase;
   }
 
-  /* ---------- BOOK ---------- */
+  /* ---------- BOOK PAGES ---------- */
   .book{
-    position:relative;
-    width:min(78vw, 380px);
-    aspect-ratio: 3/4.2;
+    position: absolute;
+    inset: 0;
     transform-style: preserve-3d;
   }
 
-  .page{
-    position:absolute; inset:0;
-    background: var(--cream);
-    border-radius: 6px;
-    box-shadow: 2px 0 12px rgba(0,0,0,.25), 0 20px 45px rgba(0,0,0,.4);
+  .page {
+    position: absolute;
+    inset: 0;
     transform-origin: left center;
     transform-style: preserve-3d;
-    backface-visibility: hidden;
     transition: transform 1s cubic-bezier(.6,0,.2,1);
-    display:flex; flex-direction:column;
-    overflow:hidden;
-    border: 1px solid rgba(92,31,46,.12);
+    transform: translateZ(var(--z, 0px)) rotateY(0deg);
   }
-  .page.flipped{ transform: rotateY(-176deg); }
+  .page.flipped {
+    /* Menumpuk halaman dengan sudut yang sangat tipis agar terlihat alami */
+    transform: translateZ(var(--z, 0px)) rotateY(-176deg);
+  }
+
+  .page .front {
+    background: var(--cream);
+    border: 1px solid rgba(92,31,46,.12);
+    box-shadow: 2px 0 12px rgba(0,0,0,.15);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .page .back {
+    background: var(--cream);
+    background-image: linear-gradient(to right, rgba(0,0,0,0.04) 0%, transparent 8%);
+    border: 1px solid rgba(92,31,46,.12);
+    box-shadow: -2px 0 12px rgba(0,0,0,.1);
+  }
 
   .page .photo-frame{
     position:relative;
@@ -192,10 +241,10 @@
   }
 
   /* closing page styling */
-  .page.closing{ align-items:center; justify-content:center; }
-  .page.closing .note{ padding: 30px; }
-  .page.closing p{ font-size: clamp(20px,4vw,26px); }
-  .page.closing .big-heart{ font-size: 30px; margin-bottom: 8px; }
+  .page .front.closing{ align-items:center; justify-content:center; }
+  .page .front.closing .note{ padding: 30px; }
+  .page .front.closing p{ font-size: clamp(20px,4vw,26px); }
+  .page .front.closing .big-heart{ font-size: 30px; margin-bottom: 8px; }
 
   /* ---------- CONTROLS ---------- */
   .controls{
@@ -240,15 +289,20 @@
 <div class="progress" id="progress"></div>
 
 <div class="scene">
-  <div class="cover" id="cover">
-    <div class="eyebrow">Sebuah Buku Kecil</div>
-    <h1 id="coverTitle">Untuk Sayangku</h1>
-    <p class="sub">selamat ulang tahun, cinta 🤍</p>
-    <div class="seal">💌</div>
-    <div class="hint">ketuk untuk membuka</div>
-  </div>
+  <div class="book-container" id="bookContainer">
+    <div class="book" id="book"></div>
 
-  <div class="book" id="book"></div>
+    <div class="cover" id="cover">
+      <div class="front">
+        <div class="eyebrow">Sebuah Buku Kecil</div>
+        <h1 id="coverTitle">Untuk Sayangku</h1>
+        <p class="sub">selamat ulang tahun, cinta 🤍</p>
+        <div class="seal">💌</div>
+        <div class="hint">ketuk untuk membuka</div>
+      </div>
+      <div class="back"></div>
+    </div>
+  </div>
 </div>
 
 <div class="controls" id="controls">
@@ -265,8 +319,6 @@
 const COVER_TITLE = "Untuk Sayangku";
 
 // Tiap objek = satu halaman. "photo" = nama file di folder images/.
-// Kalau file belum ada / salah nama, halaman otomatis tampil placeholder,
-// jadi aman untuk diisi belakangan.
 const PAGES = [
   {
     photo: "images/foto1.jpg",
@@ -302,41 +354,51 @@ const CLOSING_MESSAGE = "Selamat ulang tahun, sayangku.\nSemoga tahun ini penuh 
 document.getElementById('coverTitle').textContent = COVER_TITLE;
 
 const bookEl = document.getElementById('book');
+const cover = document.getElementById('cover');
+const bookContainer = document.getElementById('bookContainer');
 const totalPages = PAGES.length + 1; // +1 for closing page
+
+// Setup urutan Z-Index 3D agar penumpukan tepat tanpa tabrakan Z (Z-fighting)
+cover.style.setProperty('--z', `${totalPages + 2}px`);
 
 PAGES.forEach((p, i) => {
   const pageEl = document.createElement('div');
   pageEl.className = 'page';
-  pageEl.style.zIndex = totalPages - i;
+  pageEl.style.setProperty('--z', `${totalPages - i}px`);
   pageEl.innerHTML = `
-    <div class="photo-frame">
-      <img src="${p.photo}" alt="Kenangan ${i+1}"
-           onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+    <div class="front">
+      <div class="photo-frame">
+        <img src="${p.photo}" alt="Kenangan ${i+1}"
+             onerror="this.onerror=null;this.parentElement.classList.add('missing')">
+      </div>
+      <div class="note">
+        <div class="num">${String(i+1).padStart(2,'0')} / ${String(PAGES.length).padStart(2,'0')}</div>
+        <p>${p.note}</p>
+      </div>
     </div>
-    <div class="note">
-      <div class="num">${String(i+1).padStart(2,'0')} / ${String(PAGES.length).padStart(2,'0')}</div>
-      <p>${p.note}</p>
-    </div>
+    <div class="back"></div>
   `;
   bookEl.appendChild(pageEl);
 });
 
 // closing page
 const closingEl = document.createElement('div');
-closingEl.className = 'page closing';
-closingEl.style.zIndex = 0;
+closingEl.className = 'page closing-page';
+closingEl.style.setProperty('--z', `0px`);
 closingEl.innerHTML = `
-  <div class="note">
-    <div class="big-heart">🤍</div>
-    <p>${CLOSING_MESSAGE.replace(/\n/g,'<br>')}</p>
+  <div class="front closing">
+    <div class="note">
+      <div class="big-heart">🤍</div>
+      <p>${CLOSING_MESSAGE.replace(/\n/g,'<br>')}</p>
+    </div>
   </div>
+  <div class="back"></div>
 `;
 bookEl.appendChild(closingEl);
 
 const pages = Array.from(bookEl.querySelectorAll('.page'));
 let current = 0; // number of pages currently flipped
 
-const cover = document.getElementById('cover');
 const controls = document.getElementById('controls');
 const progress = document.getElementById('progress');
 const prevBtn = document.getElementById('prevBtn');
@@ -344,13 +406,16 @@ const nextBtn = document.getElementById('nextBtn');
 
 function updateUI(){
   prevBtn.disabled = current === 0;
-  nextBtn.disabled = current === pages.length;
+  // Nonaktifkan 'next' jika kita sudah di halaman penutup
+  nextBtn.disabled = current === pages.length - 1;
+  
   progress.textContent = current === 0
     ? 'sampul'
-    : (current === pages.length ? 'selesai' : `halaman ${current} / ${pages.length - 1}`);
+    : (current === pages.length - 1 ? 'selesai' : `halaman ${current} / ${pages.length - 1}`);
 }
 
 function openBook(){
+  bookContainer.classList.add('open');
   cover.classList.add('open');
   controls.classList.add('show');
   progress.classList.add('show');
@@ -358,7 +423,7 @@ function openBook(){
 }
 
 function next(){
-  if(current >= pages.length) return;
+  if(current >= pages.length - 1) return;
   pages[current].classList.add('flipped');
   current++;
   updateUI();
