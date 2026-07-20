@@ -5,137 +5,482 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Untuk Sayangku 🤍</title>
 
+<!-- ====================================================================
+     CARA EDIT (bisa langsung lewat GitHub, tanpa install apa-apa):
+     1. Buka repo kamu di github.com, klik file ini (index.html), klik ikon
+        pensil (Edit) di kanan atas.
+     2. Cari bagian "DATA HALAMAN BUKU" di bawah (di dalam <script>).
+        Ganti tulisan di dalam tanda kutip sesuka kamu.
+     3. Upload foto di folder "images" (foto1.jpg, dst).
+     4. Upload file lagu.mp3 di repository utama (sejajar dengan index.html).
+     5. Klik "Commit changes".
+     ==================================================================== -->
+
 <style>
-  :root {
+  :root{
     --wine: #5c1f2e;
     --wine-dark: #3d1420;
     --gold: #c9a24b;
+    --blush: #f3ded9;
     --cream: #fbf3e7;
     --ink: #3a2b28;
+    --sage: #7c8b5d;
+    --open-scale: 1;
   }
 
-  * { box-sizing: border-box; }
+  @media (max-width: 850px) {
+    :root { --open-scale: 0.65; }
+  }
 
-  html, body {
-    margin: 0; padding: 0; height: 100%;
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0; height:100%;
     font-family: 'EB Garamond', Georgia, serif;
     background: radial-gradient(ellipse at center, var(--wine) 0%, var(--wine-dark) 100%);
     overflow: hidden;
     color: var(--ink);
   }
 
-  .scene { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; perspective: 2400px; }
-  
-  /* Container Buku */
+  @font-face{
+    font-family: 'Display';
+    src: local('Playfair Display');
+  }
+
+  /* ambient floating petals */
+  .petals{ position:fixed; inset:0; pointer-events:none; z-index:1; }
+  .petal{
+    position:absolute; top:-5%;
+    font-size: 18px;
+    opacity:.55;
+    animation: fall linear infinite;
+    color: var(--gold);
+  }
+  @keyframes fall{
+    0%{ transform: translateY(-10vh) translateX(0) rotate(0deg); }
+    100%{ transform: translateY(110vh) translateX(20px) rotate(200deg); }
+  }
+
+  .scene{
+    position:relative; z-index:2;
+    height:100vh; width:100vw;
+    display:flex; align-items:center; justify-content:center;
+    perspective: 2400px;
+  }
+
+  /* ---------- BOOK CONTAINER ---------- */
   .book-container {
     position: relative;
-    width: min(85vw, 400px);
-    aspect-ratio: 3/4;
+    width: min(78vw, 380px);
+    aspect-ratio: 3/4.2;
     transform-style: preserve-3d;
     transform-origin: left center;
     transition: transform 1s cubic-bezier(.6,0,.2,1);
+    z-index: 10;
   }
-  .book-container.open { transform: translateX(50%) scale(1); }
+  .book-container.open {
+    transform: translateX(50%) scale(var(--open-scale));
+  }
 
-  /* Halaman */
-  .cover, .page { position: absolute; inset: 0; transform-origin: left center; transform-style: preserve-3d; transition: transform 1s cubic-bezier(.6,0,.2,1); }
-  
-  .front, .back { 
-    position: absolute; inset: 0; backface-visibility: hidden; border-radius: 6px;
-    background: var(--cream); border: 1px solid rgba(92,31,46,.12);
+  /* ---------- COVER ---------- */
+  .cover {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 1s cubic-bezier(.6,0,.2,1);
+    z-index: 50;
+    cursor: pointer;
+    transform: translateZ(var(--z, 50px)) rotateY(0deg);
+  }
+  .cover.open {
+    transform: translateZ(var(--z, 50px)) rotateY(-180deg);
+    pointer-events: none;
+  }
+
+  .cover .front, .cover .back, .page .front, .page .back {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 6px;
+  }
+  .cover .front, .page .front { transform: rotateY(0deg); }
+  .cover .back, .page .back { transform: rotateY(180deg); }
+
+  .cover .front {
+    background: radial-gradient(circle at 30% 20%, #7a2c3d 0%, var(--wine) 55%, var(--wine-dark) 100%);
+    border: 1px solid rgba(201,162,75,.5);
+    box-shadow: 0 30px 70px rgba(0,0,0,.55), inset 0 0 0 8px rgba(201,162,75,.12);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .back { transform: rotateY(180deg); }
-
-  /* BINGKAI OTOMATIS */
-  .photo-container {
-    flex: 1; display: flex; align-items: center; justify-content: center;
-    padding: 30px; width: 100%;
-  }
-  .auto-frame {
-    display: inline-block;
-    padding: 12px;
-    background: #fff;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    line-height: 0;
-  }
-  .auto-frame img {
-    max-width: 100%;
-    max-height: 40vh;
-    height: auto;
-    width: auto;
+    text-align: center;
+    padding: 30px;
   }
 
-  .note { padding: 20px; text-align: center; font-family: 'Caveat', cursive; font-size: 22px; }
-  
-  /* Animasi */
-  .cover.open { transform: rotateY(-180deg); }
-  .page.flipped { transform: rotateY(-180deg); }
+  /* Gaya untuk sisi dalam/kertas (Kiri dan Kanan) */
+  .cover .back, .page .front, .page .back {
+    background: var(--cream);
+    border: 1px solid rgba(92,31,46,.12);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .page .front { box-shadow: 2px 0 12px rgba(0,0,0,.15); }
+  .page .back {
+    background-image: linear-gradient(to right, rgba(0,0,0,0.04) 0%, transparent 8%);
+    box-shadow: -2px 0 12px rgba(0,0,0,.1);
+  }
+  .cover .back {
+    box-shadow: inset -4px 0 20px rgba(0,0,0,0.05);
+  }
+
+  .cover .eyebrow{
+    font-family: 'Display', 'Playfair Display', serif;
+    letter-spacing: .35em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+  .cover h1{
+    font-family: 'Display', 'Playfair Display', serif;
+    font-size: clamp(28px, 6vw, 40px);
+    color: var(--cream);
+    margin: 0 0 10px;
+    font-weight: 600;
+  }
+  .cover p.sub{
+    font-family: 'Caveat', cursive;
+    font-size: 22px;
+    color: var(--blush);
+    margin: 0 0 30px;
+  }
+  .seal{
+    width:64px; height:64px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, #dab35e, var(--gold) 60%, #8a6b26 100%);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 24px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.4);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ transform:scale(1);} 50%{ transform:scale(1.06);} }
+  .cover .hint{
+    margin-top: 16px;
+    font-size: 12px;
+    letter-spacing: .12em;
+    color: rgba(251,243,231,.6);
+    text-transform: uppercase;
+  }
+
+  /* ---------- BOOK PAGES ---------- */
+  .book{
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+  }
+
+  .page {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    transition: transform 1s cubic-bezier(.6,0,.2,1);
+    transform: translateZ(var(--z, 0px)) rotateY(0deg);
+  }
+  .page.flipped {
+    transform: translateZ(var(--z, 0px)) rotateY(var(--flip-deg, -178deg));
+  }
+
+  .photo-frame{
+    position:relative;
+    flex: 1 1 58%;
+    margin: 20px 20px 0;
+    border-radius: 3px;
+    background: linear-gradient(135deg, #e9d6cf, #f3ded9);
+    border: 6px solid #fff;
+    box-shadow: 0 6px 16px rgba(0,0,0,.18);
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .photo-frame img{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .photo-frame.missing img{ display:none; }
+  .photo-frame.missing::after{
+    content: '🤍  taruh foto di sini';
+    font-family: 'Caveat', cursive;
+    font-size: 18px;
+    color: #a98a76;
+  }
+
+  .note{
+    flex: 1 1 42%;
+    padding: 14px 22px 10px;
+    display:flex; flex-direction:column; justify-content:center;
+    text-align:center;
+  }
+  .note .num{
+    font-size: 11px; letter-spacing:.25em; text-transform:uppercase;
+    color: var(--sage); margin-bottom:6px;
+  }
+  .note p{
+    font-family: 'Caveat', cursive;
+    font-size: clamp(17px, 3.4vw, 21px);
+    line-height: 1.35;
+    color: var(--ink);
+    margin:0;
+  }
+
+  /* ---------- CONTROLS ---------- */
+  .controls{
+    position:fixed; bottom: 26px; left:0; right:0;
+    display:flex; justify-content:center; gap: 18px;
+    z-index: 40;
+    opacity:0; transition: opacity .6s ease;
+    pointer-events: none;
+  }
+  .controls.show{ opacity:1; pointer-events: auto; }
+  .controls button{
+    width:44px; height:44px; border-radius:50%;
+    border:1px solid rgba(201,162,75,.5);
+    background: rgba(255,255,255,.08);
+    color: var(--gold);
+    font-size: 18px;
+    cursor:pointer;
+    backdrop-filter: blur(4px);
+    transition: transform .2s ease, background .2s ease;
+  }
+  .controls button:hover{ background: rgba(255,255,255,.18); transform: translateY(-2px); }
+  .controls button:disabled{ opacity:.25; cursor:default; transform:none; }
+
+  .progress{
+    position:fixed; top: 20px; left:0; right:0;
+    text-align:center; z-index:40;
+    font-family: 'Display','Playfair Display',serif;
+    font-size: 11px; letter-spacing:.3em; text-transform:uppercase;
+    color: rgba(251,243,231,.55);
+    opacity:0; transition: opacity .6s ease;
+  }
+  .progress.show{ opacity:1; }
+
+  @media (prefers-reduced-motion: reduce){
+    .cover, .petal{ animation:none !important; }
+  }
 </style>
 </head>
 <body>
 
-<audio id="bgMusic" loop><source src="lagu.mp3" type="audio/mpeg"></audio>
+<!-- Audio Player -->
+<audio id="bgMusic" loop>
+  <source src="lagu.mp3" type="audio/mpeg">
+</audio>
+
+<div class="petals" id="petals"></div>
+
+<div class="progress" id="progress"></div>
 
 <div class="scene">
   <div class="book-container" id="bookContainer">
-    
-    <!-- Cover -->
+    <div class="book" id="book"></div>
+
     <div class="cover" id="cover">
-      <div class="front" style="background: var(--wine); color: white;">
-        <h1>Untuk Sayangku</h1>
-        <p>Ketuk untuk membuka</p>
+      <div class="front">
+        <div class="eyebrow">Sebuah Buku Kecil</div>
+        <h1 id="coverTitle">Untuk Sayangku</h1>
+        <p class="sub">selamat ulang tahun, cinta 🤍</p>
+        <div class="seal">💌</div>
+        <div class="hint">ketuk untuk membuka</div>
       </div>
-      <div class="back" id="p1"></div>
-    </div>
-
-    <!-- Halaman Dalam -->
-    <div class="book" id="book">
-      <div class="page" id="p2">
-        <div class="front" id="p3"></div>
-        <div class="back" id="p4"></div>
+      <div class="back" id="coverBack">
+        <!-- Diisi otomatis oleh JS untuk sisi kiri pertama -->
       </div>
     </div>
-
   </div>
 </div>
 
+<div class="controls" id="controls">
+  <button id="prevBtn" aria-label="Halaman sebelumnya">‹</button>
+  <button id="nextBtn" aria-label="Halaman berikutnya">›</button>
+</div>
+
 <script>
-// DATA FOTO (Ubah nama file di sini)
-const content = [
-  { img: "images/foto1.jpg", note: "Momen indah pertama kita." },
-  { img: "images/foto2.jpg", note: "Selalu senang saat berdua." },
-  { img: "images/foto3.jpg", note: "Terima kasih untuk segalanya." }
+/* ======================================================================
+   DATA HALAMAN BUKU — 3 Lembar (Kiri dan Kanan)
+   ====================================================================== */
+
+const COVER_TITLE = "Untuk Sayangku";
+
+// Susunan cerita diubah menjadi SPREADS (pasangan kiri dan kanan)
+const SPREADS = [
+  {
+    left: { photo: "images/foto1.jpg", note: "Ini cerita pertama kita saat baru mulai. Rasanya deg-degan banget..." },
+    right: { photo: "images/foto2.jpg", note: "Banyak momen lucu dan konyol yang kita lewati berdua." }
+  },
+  {
+    left: { photo: "images/foto3.jpg", note: "Hal yang paling aku suka darimu adalah senyum manismu." },
+    right: { photo: "images/foto4.jpg", note: "Kenangan liburan kita, selalu pengen diulang terus." }
+  },
+  {
+    left: { photo: "images/foto5.jpg", note: "Terima kasih ya sudah selalu ada dan support aku." },
+    right: {
+      isClosing: true,
+      note: "Selamat ulang tahun, sayangku.\nSemoga tahun ini penuh hal-hal baik untukmu.\nAku sayang kamu, selalu."
+    }
+  }
 ];
 
-function buildPage(data) {
-  return `
-    <div class="photo-container">
-      <div class="auto-frame">
-        <img src="${data.img}" onerror="this.style.display='none'">
+/* ====================================================================== */
+
+document.getElementById('coverTitle').textContent = COVER_TITLE;
+
+const bookEl = document.getElementById('book');
+const cover = document.getElementById('cover');
+const coverBackEl = document.getElementById('coverBack');
+const bookContainer = document.getElementById('bookContainer');
+const bgMusic = document.getElementById('bgMusic');
+
+const totalSpreads = SPREADS.length; // 3 lembar
+cover.style.setProperty('--z', `${totalSpreads * 2 + 2}px`);
+
+// Fungsi pembantu membuat HTML halaman
+function createPageContent(data, pageNumStr) {
+  if (!data) return '';
+  if (data.isClosing) {
+    return `
+      <div class="note" style="padding: 30px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="big-heart" style="font-size: 30px; margin-bottom: 8px;">🤍</div>
+        <p style="font-size: clamp(20px,4vw,26px); margin:0;">${data.note.replace(/\n/g,'<br>')}</p>
       </div>
+    `;
+  }
+  return `
+    <div class="photo-frame">
+      <img src="${data.photo}" alt="Kenangan" onerror="this.onerror=null;this.parentElement.classList.add('missing')">
     </div>
-    <div class="note">${data.note}</div>
+    <div class="note">
+      <div class="num">${pageNumStr}</div>
+      <p>${data.note}</p>
+    </div>
   `;
 }
 
-// Pasang ke elemen
-document.getElementById('p1').innerHTML = buildPage(content[0]);
-document.getElementById('p3').innerHTML = buildPage(content[1]);
-document.getElementById('p4').innerHTML = buildPage(content[2]);
+// 1. Isi Balik Cover (Lembar 1 - Sisi Kiri)
+coverBackEl.innerHTML = createPageContent(SPREADS[0].left, '01 / 05');
 
-// Interaksi
-const cover = document.getElementById('cover');
-const page = document.querySelector('.page');
-const bookContainer = document.getElementById('bookContainer');
+// 2. Buat Lembaran Dalam
+for (let i = 0; i < totalSpreads; i++) {
+  const pageEl = document.createElement('div');
+  pageEl.className = 'page';
+  
+  // Hitung rotasi flip dan z-index agar tumpukan terlihat realistis 3D
+  const flipDeg = -178 + (i * 2);
+  pageEl.style.setProperty('--z', `${(totalSpreads - i) * 2}px`);
+  pageEl.style.setProperty('--flip-deg', `${flipDeg}deg`);
 
-cover.onclick = () => {
-    bookContainer.classList.add('open');
-    cover.classList.add('open');
-    document.getElementById('bgMusic').play();
-};
+  // Konten Depan (Kanan)
+  const frontContent = createPageContent(SPREADS[i].right, `0${(i * 2) + 2} / 05`);
+  
+  // Konten Belakang (Kiri, untuk lembaran berikutnya)
+  let backContent = '';
+  if (i + 1 < totalSpreads) {
+    backContent = createPageContent(SPREADS[i + 1].left, `0${(i * 2) + 3} / 05`);
+  }
 
-page.onclick = () => page.classList.toggle('flipped');
+  pageEl.innerHTML = `
+    <div class="front">${frontContent}</div>
+    <div class="back">${backContent}</div>
+  `;
+  bookEl.appendChild(pageEl);
+}
+
+const pages = Array.from(bookEl.querySelectorAll('.page'));
+let current = 0;
+
+const controls = document.getElementById('controls');
+const progress = document.getElementById('progress');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function updateUI(){
+  prevBtn.disabled = current === 0;
+  
+  if (current === pages.length - 1) {
+    progress.textContent = 'selesai (ketuk › untuk menutup)';
+  } else {
+    progress.textContent = current === 0 ? 'halaman awal' : `bagian ${current + 1}`;
+  }
+}
+
+function openBook(){
+  bookContainer.classList.add('open');
+  cover.classList.add('open');
+  controls.classList.add('show');
+  progress.classList.add('show');
+  
+  bgMusic.play().catch(e => console.log("Menunggu interaksi."));
+  updateUI();
+}
+
+function closeBook() {
+  pages.forEach(p => p.classList.remove('flipped'));
+  current = 0;
+  bookContainer.classList.remove('open');
+  cover.classList.remove('open');
+  controls.classList.remove('show');
+  progress.classList.remove('show');
+  updateUI();
+}
+
+function next(){
+  // Menutup buku secara otomatis jika diklik next di halaman terakhir (penutup)
+  if(current >= pages.length - 1) {
+    closeBook();
+    return;
+  }
+  pages[current].classList.add('flipped');
+  current++;
+  updateUI();
+}
+
+function prev(){
+  if(current <= 0) return;
+  current--;
+  pages[current].classList.remove('flipped');
+  updateUI();
+}
+
+cover.addEventListener('click', openBook);
+nextBtn.addEventListener('click', next);
+prevBtn.addEventListener('click', prev);
+
+let touchX = null;
+document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+document.addEventListener('touchend', e => {
+  if(touchX === null) return;
+  const dx = e.changedTouches[0].clientX - touchX;
+  if(Math.abs(dx) > 50){ dx < 0 ? next() : prev(); }
+  touchX = null;
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight') next();
+  if(e.key === 'ArrowLeft') prev();
+});
+
+const petalContainer = document.getElementById('petals');
+const petalChars = ['🤍','✦','🕊'];
+for(let i=0; i<14; i++){
+  const el = document.createElement('div');
+  el.className = 'petal';
+  el.textContent = petalChars[i % petalChars.length];
+  el.style.left = Math.random()*100 + 'vw';
+  el.style.animationDuration = (14 + Math.random()*10) + 's';
+  el.style.animationDelay = (Math.random()*14) + 's';
+  el.style.fontSize = (12 + Math.random()*10) + 'px';
+  petalContainer.appendChild(el);
+}
 </script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Caveat:wght@500;600&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
 </body>
 </html>
