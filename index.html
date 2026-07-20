@@ -11,12 +11,9 @@
         pensil (Edit) di kanan atas.
      2. Cari bagian "DATA HALAMAN BUKU" di bawah (di dalam <script>).
         Ganti tulisan di dalam tanda kutip sesuka kamu.
-     3. Untuk foto: buat folder bernama "images" di repo, upload foto ke
-        situ (misal foto1.jpg, foto2.jpg, dst), lalu tulis nama filenya
-        di bagian "photo:" masing-masing halaman. Kalau foto belum ada,
-        halaman otomatis nunjukin kotak placeholder — jadi web tetap
-        jalan normal.
-     4. Klik "Commit changes" di bawah, tunggu sebentar, refresh websitenya.
+     3. Upload foto di folder "images" (foto1.jpg, dst).
+     4. Upload file lagu.mp3 di repository utama (sejajar dengan index.html).
+     5. Klik "Commit changes".
      ==================================================================== -->
 
 <style>
@@ -28,11 +25,11 @@
     --cream: #fbf3e7;
     --ink: #3a2b28;
     --sage: #7c8b5d;
-    --open-scale: 1; /* Default scale untuk desktop */
+    --open-scale: 1;
   }
 
   @media (max-width: 850px) {
-    :root { --open-scale: 0.65; } /* Buku mengecil saat terbuka di layar HP agar muat 2 halaman */
+    :root { --open-scale: 0.65; }
   }
 
   *{ box-sizing: border-box; }
@@ -81,7 +78,6 @@
     transition: transform 1s cubic-bezier(.6,0,.2,1);
     z-index: 10;
   }
-  /* Menggeser buku ke tengah layar saat terbuka */
   .book-container.open {
     transform: translateX(50%) scale(var(--open-scale));
   }
@@ -95,15 +91,13 @@
     transition: transform 1s cubic-bezier(.6,0,.2,1);
     z-index: 50;
     cursor: pointer;
-    /* Nilai Z diatur otomatis via JS */
     transform: translateZ(var(--z, 50px)) rotateY(0deg);
   }
   .cover.open {
-    transform: translateZ(var(--z, 50px)) rotateY(-178deg);
+    transform: translateZ(var(--z, 50px)) rotateY(-180deg);
     pointer-events: none;
   }
 
-  /* Wajah depan dan belakang dari cover & halaman */
   .cover .front, .cover .back, .page .front, .page .back {
     position: absolute;
     inset: 0;
@@ -123,9 +117,9 @@
     padding: 30px;
   }
   .cover .back {
-    background: var(--wine-dark);
-    border: 1px solid rgba(201,162,75,.2);
-    box-shadow: inset 4px 0 20px rgba(0,0,0,0.6);
+    background: var(--cream); /* Fix bug garis merah: diubah dari wine ke cream */
+    border: 1px solid rgba(92,31,46,.12);
+    box-shadow: inset -4px 0 20px rgba(0,0,0,0.05);
   }
 
   .cover .eyebrow{
@@ -182,8 +176,7 @@
     transform: translateZ(var(--z, 0px)) rotateY(0deg);
   }
   .page.flipped {
-    /* Menumpuk halaman dengan sudut yang sangat tipis agar terlihat alami */
-    transform: translateZ(var(--z, 0px)) rotateY(-176deg);
+    transform: translateZ(var(--z, 0px)) rotateY(-180deg);
   }
 
   .page .front {
@@ -252,8 +245,9 @@
     display:flex; justify-content:center; gap: 18px;
     z-index: 40;
     opacity:0; transition: opacity .6s ease;
+    pointer-events: none;
   }
-  .controls.show{ opacity:1; }
+  .controls.show{ opacity:1; pointer-events: auto; }
   .controls button{
     width:44px; height:44px; border-radius:50%;
     border:1px solid rgba(201,162,75,.5);
@@ -283,6 +277,11 @@
 </style>
 </head>
 <body>
+
+<!-- Audio Player (Otomatis main saat layar diketuk) -->
+<audio id="bgMusic" loop>
+  <source src="lagu.mp3" type="audio/mpeg">
+</audio>
 
 <div class="petals" id="petals"></div>
 
@@ -315,10 +314,8 @@
    DATA HALAMAN BUKU — edit semua di bawah ini
    ====================================================================== */
 
-// Judul di sampul buku (nama pacarmu)
 const COVER_TITLE = "Untuk Sayangku";
 
-// Tiap objek = satu halaman. "photo" = nama file di folder images/.
 const PAGES = [
   {
     photo: "images/foto1.jpg",
@@ -346,7 +343,6 @@ const PAGES = [
   }
 ];
 
-// Pesan penutup di halaman terakhir
 const CLOSING_MESSAGE = "Selamat ulang tahun, sayangku.\nSemoga tahun ini penuh hal-hal baik untukmu.\nAku sayang kamu, selalu.";
 
 /* ====================================================================== */
@@ -356,9 +352,9 @@ document.getElementById('coverTitle').textContent = COVER_TITLE;
 const bookEl = document.getElementById('book');
 const cover = document.getElementById('cover');
 const bookContainer = document.getElementById('bookContainer');
-const totalPages = PAGES.length + 1; // +1 for closing page
+const bgMusic = document.getElementById('bgMusic');
+const totalPages = PAGES.length + 1;
 
-// Setup urutan Z-Index 3D agar penumpukan tepat tanpa tabrakan Z (Z-fighting)
 cover.style.setProperty('--z', `${totalPages + 2}px`);
 
 PAGES.forEach((p, i) => {
@@ -381,7 +377,6 @@ PAGES.forEach((p, i) => {
   bookEl.appendChild(pageEl);
 });
 
-// closing page
 const closingEl = document.createElement('div');
 closingEl.className = 'page closing-page';
 closingEl.style.setProperty('--z', `0px`);
@@ -397,7 +392,7 @@ closingEl.innerHTML = `
 bookEl.appendChild(closingEl);
 
 const pages = Array.from(bookEl.querySelectorAll('.page'));
-let current = 0; // number of pages currently flipped
+let current = 0;
 
 const controls = document.getElementById('controls');
 const progress = document.getElementById('progress');
@@ -406,12 +401,12 @@ const nextBtn = document.getElementById('nextBtn');
 
 function updateUI(){
   prevBtn.disabled = current === 0;
-  // Nonaktifkan 'next' jika kita sudah di halaman penutup
-  nextBtn.disabled = current === pages.length - 1;
   
-  progress.textContent = current === 0
-    ? 'sampul'
-    : (current === pages.length - 1 ? 'selesai' : `halaman ${current} / ${pages.length - 1}`);
+  if (current === pages.length) {
+    progress.textContent = 'selesai (ketuk › untuk menutup)';
+  } else {
+    progress.textContent = current === 0 ? 'sampul' : `halaman ${current} / ${pages.length - 1}`;
+  }
 }
 
 function openBook(){
@@ -419,11 +414,33 @@ function openBook(){
   cover.classList.add('open');
   controls.classList.add('show');
   progress.classList.add('show');
+  
+  // Memutar musik otomatis ketika buku dibuka
+  bgMusic.play().catch(e => console.log("Menunggu interaksi pengguna untuk audio."));
+  
+  updateUI();
+}
+
+function closeBook() {
+  // Reset semua halaman kembali ke awal
+  pages.forEach(p => p.classList.remove('flipped'));
+  current = 0;
+  
+  // Tutup cover dan kembalikan posisi buku ke tengah
+  bookContainer.classList.remove('open');
+  cover.classList.remove('open');
+  controls.classList.remove('show');
+  progress.classList.remove('show');
+  
   updateUI();
 }
 
 function next(){
-  if(current >= pages.length - 1) return;
+  // Jika sudah di halaman terakhir, klik tombol next akan menutup buku
+  if(current >= pages.length) {
+    closeBook();
+    return;
+  }
   pages[current].classList.add('flipped');
   current++;
   updateUI();
@@ -440,7 +457,6 @@ cover.addEventListener('click', openBook);
 nextBtn.addEventListener('click', next);
 prevBtn.addEventListener('click', prev);
 
-// swipe support
 let touchX = null;
 document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
 document.addEventListener('touchend', e => {
@@ -450,13 +466,11 @@ document.addEventListener('touchend', e => {
   touchX = null;
 });
 
-// keyboard support
 document.addEventListener('keydown', e => {
   if(e.key === 'ArrowRight') next();
   if(e.key === 'ArrowLeft') prev();
 });
 
-// ambient petals
 const petalContainer = document.getElementById('petals');
 const petalChars = ['🤍','✦','🕊'];
 for(let i=0; i<14; i++){
